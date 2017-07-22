@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DragBadgeView">
+        <!--文字-->
+        <attr name="text" format="string"/>
+        <!--数字颜色-->
+        <attr name="textColor" format="color"/>
+        <!--控件颜色-->
+        <attr name="bgColor" format="color"/>
+        <!--贝塞尔曲线消失的最大范围-->
+        <attr name="maxMoveRange" format="dimension"/>
+    </declare-styleable>
+
+</resources>
