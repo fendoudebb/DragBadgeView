@@ -1,5 +1,6 @@
 package com.fendoudebb.dragbadgeview;
 
+import android.graphics.Color;
 import android.util.SparseBooleanArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,6 +50,12 @@ public class SampleAdapter extends BaseAdapter {
         }
 
         String text = mList.get(position);
+
+        if (position % 2 == 0) {
+            holder.mDragBadgeView.setBgColor(Color.BLUE);
+        } else {
+            holder.mDragBadgeView.setBgColor(Color.RED);
+        }
 
         holder.mTextView.setText(text);
         holder.mDragBadgeView.setText(position+"");

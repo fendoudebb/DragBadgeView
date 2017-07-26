@@ -3,6 +3,8 @@
     <declare-styleable name="DragBadgeView">
         <!--文字-->
         <attr name="text" format="string"/>
+        <!--文字-->
+        <attr name="textSize" format="dimension"/>
         <!--数字颜色-->
         <attr name="textColor" format="color"/>
         <!--控件颜色-->

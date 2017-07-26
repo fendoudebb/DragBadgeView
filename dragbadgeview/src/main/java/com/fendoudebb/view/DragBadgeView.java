@@ -42,7 +42,6 @@ public class DragBadgeView extends View {
     private static final String TAG = "DragBadgeView";
 
     private String  mText;
-    private int     mBgColor;
     private float   mMaxMoveRange;
     private float   mTextWidth;
     private float   mTextHeight;
@@ -84,18 +83,19 @@ public class DragBadgeView extends View {
     private void init(AttributeSet attrs) {
         TypedArray array = getContext().obtainStyledAttributes(attrs, R.styleable.DragBadgeView);
         mText = array.getString(R.styleable.DragBadgeView_text);
-        mBgColor = array.getColor(R.styleable.DragBadgeView_bgColor, Color.RED);
+        float textSize = array.getDimension(R.styleable.DragBadgeView_textSize, sp2px(10));
+        int bgColor = array.getColor(R.styleable.DragBadgeView_bgColor, Color.RED);
         int textColor = array.getColor(R.styleable.DragBadgeView_textColor, Color.WHITE);
         mMaxMoveRange = array.getDimension(R.styleable.DragBadgeView_maxMoveRange, dp2px(80));
         array.recycle();
 
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPaint.setColor(mBgColor);
+        mPaint.setColor(bgColor);
 
         mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.setAntiAlias(true);
         mTextPaint.setTextAlign(Paint.Align.CENTER);
-        mTextPaint.setTextSize(sp2px(12));
+        mTextPaint.setTextSize(textSize);
         mTextPaint.setColor(textColor);
 
         if (mText == null) {
@@ -114,11 +114,12 @@ public class DragBadgeView extends View {
      * @param text 需要被测量的文字
      */
     private void measureText(String text) {
-        mTextWidth = mTextPaint.measureText(text);
+        mTextWidth = mTextPaint.measureText(text) + getPaddingLeft() + getPaddingRight();
         Paint.FontMetrics fontMetrics = mTextPaint.getFontMetrics();
         mFontMetricsTop = fontMetrics.top;
         mFontMetricsBottom = fontMetrics.bottom;
-        mTextHeight = Math.abs(mFontMetricsTop - mFontMetricsBottom);
+        mTextHeight = Math.abs(mFontMetricsTop - mFontMetricsBottom) + getPaddingTop() +
+                getPaddingBottom();
         Log.d(TAG, "measureText: mTextWidth: " + mTextWidth
                 + ",mTextHeight: " + mTextHeight + ",mText: " + mText);
     }
@@ -130,7 +131,7 @@ public class DragBadgeView extends View {
      */
     public void setText(String text) {
         mText = text;
-        Log.d(TAG, "setText: "+text);
+        Log.d(TAG, "setText: " + text);
 
         measureText(mText);
         //请求重新布局,会先调用onMeasure
@@ -140,6 +141,26 @@ public class DragBadgeView extends View {
         if (isDragging && mBadgeView != null) {
             updateCacheBitmap();
             mBadgeView.postInvalidate();
+        }
+    }
+
+    /**
+     * 设置控件显示颜色
+     *
+     * @param color 颜色值
+     */
+    public void setBgColor(int color) {
+        mPaint.setColor(color);
+    }
+
+    /**
+     * 设置文字大小
+     *
+     * @param textSize 文字大小必须 大于 0 ,注意sp2px转换
+     */
+    public void setTextSize(float textSize) {
+        if (textSize > 0) {
+            mTextPaint.setTextSize(textSize);
         }
     }
 
@@ -158,12 +179,6 @@ public class DragBadgeView extends View {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = measureDimension((int) Math.max(mTextWidth, mTextHeight), widthMeasureSpec);
         int height = measureDimension((int) mTextHeight, heightMeasureSpec);
-        if (mText.length() == 1) {
-            width = (int) (width + dp2px(4));
-        } else {
-            width = (int) (width + dp2px(10));
-        }
-        height = (int) (height + dp2px(4));
         setMeasuredDimension(width, height);
     }
 
@@ -184,8 +199,12 @@ public class DragBadgeView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        mTextRectF.set(getPaddingLeft(), getPaddingTop(), getWidth() - getPaddingRight(),
-                getHeight() - getPaddingBottom());
+
+        float tempWidth = getWidth();
+        if (getWidth() < getHeight()) {
+            tempWidth = getHeight();
+        }
+        mTextRectF.set(0, 0, tempWidth, getHeight());
 
         canvas.drawRoundRect(mTextRectF, getHeight() / 2, getHeight() / 2, mPaint);
 
@@ -299,8 +318,7 @@ public class DragBadgeView extends View {
         private boolean isOutOfRange;//手指抬起时是否在超出最大范围
         private boolean isBezierBreak;//贝塞尔曲线是否已经拉断
 
-        private Paint mPaint;
-        private Path  mPath;
+        private Path mPath;
 
         private ValueAnimator mAnimator;
 
@@ -310,8 +328,6 @@ public class DragBadgeView extends View {
         }
 
         private void init() {
-            mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            mPaint.setColor(mBgColor);
             mPath = new Path();
         }
 
@@ -456,6 +472,7 @@ public class DragBadgeView extends View {
 
         /**
          * 判断复位动画是否正在执行
+         *
          * @return true:正在执行 false:反之
          */
         public boolean isAnimatorRunning() {
@@ -464,6 +481,7 @@ public class DragBadgeView extends View {
 
         /**
          * 消失后的动画
+         *
          * @param x        BadgeView消失的x坐标
          * @param y        BadgeView消失的y坐标
          * @param rootView DecorView
