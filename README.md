@@ -1,5 +1,6 @@
 ## DragBadgeView
 仿QQ可拖拽控件
+博客地址:[http://blog.csdn.net/fendoudebb/article/details/76146252](http://blog.csdn.net/fendoudebb/article/details/76146252)
 ## 样例演示
 ![](pic/sample.gif)
 ## 引入
