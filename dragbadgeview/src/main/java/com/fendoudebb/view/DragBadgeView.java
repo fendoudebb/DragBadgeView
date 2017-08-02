@@ -40,6 +40,7 @@ import android.widget.ScrollView;
 
 public class DragBadgeView extends View {
     private static final String TAG = "DragBadgeView";
+    private static final String VIEW_TAG = "BadgeView_TAG";
 
     private String  mText;
     private float   mMaxMoveRange;
@@ -48,6 +49,7 @@ public class DragBadgeView extends View {
     private float   mFontMetricsTop;
     private float   mFontMetricsBottom;
     private boolean isDragging;
+    private boolean moreThanOnePointersOnScreen;
     private int[] mRootViewLocation = new int[2];
 
     private Paint     mPaint;
@@ -228,6 +230,11 @@ public class DragBadgeView extends View {
         }
         switch (MotionEventCompat.getActionMasked(event)) {
             case MotionEvent.ACTION_DOWN:
+                ViewGroup vg = (ViewGroup) root;
+                View badgeView = vg.findViewWithTag(VIEW_TAG);
+                if (badgeView != null) {
+                    return false;
+                }
                 root.getLocationOnScreen(mRootViewLocation);
                 mScrollParent = getScrollParent(this);
                 if (mScrollParent != null) {
@@ -243,24 +250,39 @@ public class DragBadgeView extends View {
                 mBadgeView = new BadgeView(getContext());
 //                mBadgeView.setLayoutParams(new ViewGroup.LayoutParams(root.getWidth(),
 //                        root.getHeight()));
-                if (mBadgeView.isAnimatorRunning()) {
+                if (mBadgeView.isResetAnimatorRunning()) {
                     return false;
                 }
                 updateCacheBitmap();
                 mBadgeView.initPoints(downX, downY, event.getRawX() - mRootViewLocation[0],
                         event.getRawY() - mRootViewLocation[1], radius);
+                mBadgeView.setTag(VIEW_TAG);
                 ((ViewGroup) root).addView(mBadgeView);
 
                 setVisibility(View.INVISIBLE);
                 isDragging = true;
                 break;
             case MotionEvent.ACTION_MOVE:
+                int pointerCount = event.getPointerCount();
+                if (pointerCount > 1) {
+                    moreThanOnePointersOnScreen = true;
+                    if (mBadgeView != null && !mBadgeView.isResetAnimatorRunning()) {
+                        mBadgeView.reset();
+                    }
+                    return false;
+                }
                 mBadgeView.updateView(event.getRawX() - mRootViewLocation[0],
                         event.getRawY() - mRootViewLocation[1]);
                 break;
             case MotionEvent.ACTION_UP:
+                isDragging = false;
                 if (mScrollParent != null) {
                     mScrollParent.requestDisallowInterceptTouchEvent(false);
+                }
+
+                if (moreThanOnePointersOnScreen) {
+                    moreThanOnePointersOnScreen = false;
+                    return true;
                 }
 
                 if (mBadgeView.isOutOfRange) {
@@ -269,7 +291,6 @@ public class DragBadgeView extends View {
                 } else {
                     mBadgeView.reset();
                 }
-                isDragging = false;
                 break;
             default:
                 break;
@@ -407,7 +428,6 @@ public class DragBadgeView extends View {
                     Math.pow(mOriginPoint.x - mDragPoint.x, 2));
 
             isOutOfRange = distance > mMaxMoveRange;//判断拖拽点是否超出最大范围
-
             //固定圆,半径缩放
             mOriginRadius = mDragRadius - distance / 10;
             //最小半径5dp
@@ -421,6 +441,9 @@ public class DragBadgeView extends View {
         //复位
         public void reset() {
             final PointF tempDragPoint = new PointF(mDragPoint.x, mDragPoint.y);
+            if (tempDragPoint.x == mOriginPoint.x && tempDragPoint.y == mOriginPoint.y) {
+                return;
+            }
             final FloatEvaluator evaluator = new FloatEvaluator();
             mAnimator = ValueAnimator.ofFloat(1.0f);
             mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -437,9 +460,11 @@ public class DragBadgeView extends View {
                 public void onAnimationEnd(Animator animation) {
                     clearAnimation();//结束时清除动画
                     ViewGroup rootView = (ViewGroup) BadgeView.this.getParent();
-                    rootView.removeView(BadgeView.this);
+                    if (rootView != null) {
+                        rootView.removeView(BadgeView.this);
+                        DragBadgeView.this.setVisibility(VISIBLE);
+                    }
                     recycleCacheBitmap();
-                    DragBadgeView.this.setVisibility(VISIBLE);
                 }
             });
             mAnimator.setInterpolator(new OvershootInterpolator());
@@ -450,10 +475,12 @@ public class DragBadgeView extends View {
         //消失
         public void disappear(float x, final float y) {
             ViewGroup rootView = (ViewGroup) BadgeView.this.getParent();
-            rootView.removeView(BadgeView.this);//DecorView中移除BadgeView
+            if (rootView != null) {
+                rootView.removeView(BadgeView.this);//DecorView中移除BadgeView
+                //添加消失后的动画
+                addExplodeImageView(x, y, rootView);
+            }
             recycleCacheBitmap();
-            //添加消失后的动画
-            addExplodeImageView(x, y, rootView);
 
             if (mListener != null) {
                 mListener.onDisappear(mText);
@@ -475,7 +502,7 @@ public class DragBadgeView extends View {
          *
          * @return true:正在执行 false:反之
          */
-        public boolean isAnimatorRunning() {
+        public boolean isResetAnimatorRunning() {
             return mAnimator != null && mAnimator.isRunning();
         }
 
