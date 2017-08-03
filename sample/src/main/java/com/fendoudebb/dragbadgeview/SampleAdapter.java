@@ -67,6 +67,12 @@ public class SampleAdapter extends BaseAdapter {
             holder.mDragBadgeView.setVisibility(View.VISIBLE);
         }
 
+        if (position % 2 == 0) {
+            holder.mDragBadgeView.setDragEnable(true);
+        } else {
+            holder.mDragBadgeView.setDragEnable(false);
+        }
+
         holder.mDragBadgeView.setOnDragBadgeViewListener(new DragBadgeView.OnDragBadgeViewListener() {
 
             @Override

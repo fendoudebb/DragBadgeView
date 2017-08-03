@@ -48,8 +48,8 @@ public class DragBadgeView extends View {
     private float   mTextHeight;
     private float   mFontMetricsTop;
     private float   mFontMetricsBottom;
+    private boolean mDragEnable;
     private boolean isDragging;
-    private boolean moreThanOnePointersOnScreen;
     private int[] mRootViewLocation = new int[2];
 
     private Paint     mPaint;
@@ -89,6 +89,7 @@ public class DragBadgeView extends View {
         int bgColor = array.getColor(R.styleable.DragBadgeView_bgColor, Color.RED);
         int textColor = array.getColor(R.styleable.DragBadgeView_textColor, Color.WHITE);
         mMaxMoveRange = array.getDimension(R.styleable.DragBadgeView_maxMoveRange, dp2px(80));
+        mDragEnable = array.getBoolean(R.styleable.DragBadgeView_dragEnable, true);
         array.recycle();
 
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -167,6 +168,15 @@ public class DragBadgeView extends View {
     }
 
     /**
+     * 设置能否拖拽
+     *
+     * @param enable true:能拖拽 false:反之
+     */
+    public void setDragEnable(boolean enable) {
+        mDragEnable = enable;
+    }
+
+    /**
      * 获取TextView的缓存bitmap
      */
     private void updateCacheBitmap() {
@@ -201,7 +211,6 @@ public class DragBadgeView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         float tempWidth = getWidth();
         if (getWidth() < getHeight()) {
             tempWidth = getHeight();
@@ -224,13 +233,18 @@ public class DragBadgeView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        View root = getRootView();
-        if (root == null || !(root instanceof ViewGroup)) {
-            return false;
-        }
         switch (MotionEventCompat.getActionMasked(event)) {
             case MotionEvent.ACTION_DOWN:
+                if (!mDragEnable) {//设置了不可拖动属性
+                    return false;
+                }
+                View root = getRootView();
+                //判断DecorView是否为空,是否是ViewGroup
+                if (root == null || !(root instanceof ViewGroup)) {
+                    return false;
+                }
                 ViewGroup vg = (ViewGroup) root;
+                //找出添加Tag的BadgeView,ListView/RecyclerView多条目时会两个Item同事Action_Down事件
                 View badgeView = vg.findViewWithTag(VIEW_TAG);
                 if (badgeView != null) {
                     return false;
@@ -256,39 +270,35 @@ public class DragBadgeView extends View {
                 updateCacheBitmap();
                 mBadgeView.initPoints(downX, downY, event.getRawX() - mRootViewLocation[0],
                         event.getRawY() - mRootViewLocation[1], radius);
-                mBadgeView.setTag(VIEW_TAG);
-                ((ViewGroup) root).addView(mBadgeView);
+                mBadgeView.setTag(VIEW_TAG);//给BadgeView设置Tag
+                View cacheView = vg.findViewWithTag(VIEW_TAG);//如果有之前的BadgeView,清除
+                if (cacheView != null) {
+                    vg.removeView(cacheView);
+                }
+                vg.addView(mBadgeView);
 
-                setVisibility(View.INVISIBLE);
+                setVisibility(View.INVISIBLE);//设置标记View隐藏
                 isDragging = true;
                 break;
             case MotionEvent.ACTION_MOVE:
-                int pointerCount = event.getPointerCount();
-                if (pointerCount > 1) {
-                    moreThanOnePointersOnScreen = true;
-                    if (mBadgeView != null && !mBadgeView.isResetAnimatorRunning()) {
-                        mBadgeView.reset();
-                    }
-                    return false;
-                }
                 mBadgeView.updateView(event.getRawX() - mRootViewLocation[0],
                         event.getRawY() - mRootViewLocation[1]);
                 break;
             case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_DOWN://多个手指按下时
+            case MotionEvent.ACTION_CANCEL:
+                //BadgeView移动到屏幕左右两边边缘时点击ListView/RecyclerView条目时触发
                 isDragging = false;
                 if (mScrollParent != null) {
                     mScrollParent.requestDisallowInterceptTouchEvent(false);
                 }
-
-                if (moreThanOnePointersOnScreen) {
-                    moreThanOnePointersOnScreen = false;
+                if (mBadgeView == null) {
                     return true;
                 }
-
                 if (mBadgeView.isOutOfRange) {
                     mBadgeView.disappear(event.getRawX() - mRootViewLocation[0],
                             event.getRawY() - mRootViewLocation[1]);
-                } else {
+                } else if (!mBadgeView.isResetAnimatorRunning()){
                     mBadgeView.reset();
                 }
                 break;
@@ -323,6 +333,7 @@ public class DragBadgeView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         Log.d(TAG, "onSizeChanged() called with: w = [" + w + "], h = [" + h + "], oldw = [" +
                 oldw + "], oldh = [" + oldh + "]");
+        setBackgroundColor(Color.TRANSPARENT);
     }
 
     /**

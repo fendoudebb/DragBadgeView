@@ -11,6 +11,8 @@
         <attr name="bgColor" format="color"/>
         <!--贝塞尔曲线消失的最大范围-->
         <attr name="maxMoveRange" format="dimension"/>
+        <!--能否拖拽-->
+        <attr name="dragEnable" format="boolean"/>
     </declare-styleable>
 
 </resources>
