@@ -39,10 +39,12 @@ import android.widget.ScrollView;
  */
 
 public class DragBadgeView extends View {
-    private static final String TAG = "DragBadgeView";
+    private static final String TAG      = "DragBadgeView";
     private static final String VIEW_TAG = "BadgeView_TAG";
 
     private String  mText;
+    private String  mDrawText;
+    private int     mMaxShowValue;
     private float   mMaxMoveRange;
     private float   mTextWidth;
     private float   mTextHeight;
@@ -84,12 +86,13 @@ public class DragBadgeView extends View {
     //初始化
     private void init(AttributeSet attrs) {
         TypedArray array = getContext().obtainStyledAttributes(attrs, R.styleable.DragBadgeView);
-        mText = array.getString(R.styleable.DragBadgeView_text);
+        mText = mDrawText = array.getString(R.styleable.DragBadgeView_text);
         float textSize = array.getDimension(R.styleable.DragBadgeView_textSize, sp2px(10));
         int bgColor = array.getColor(R.styleable.DragBadgeView_bgColor, Color.RED);
         int textColor = array.getColor(R.styleable.DragBadgeView_textColor, Color.WHITE);
         mMaxMoveRange = array.getDimension(R.styleable.DragBadgeView_maxMoveRange, dp2px(80));
         mDragEnable = array.getBoolean(R.styleable.DragBadgeView_dragEnable, true);
+        mMaxShowValue = array.getInt(R.styleable.DragBadgeView_maxShowValue, 99);
         array.recycle();
 
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -102,10 +105,10 @@ public class DragBadgeView extends View {
         mTextPaint.setColor(textColor);
 
         if (mText == null) {
-            mText = "-1";
+            mText = mDrawText = "-1";
         }
 
-        measureText(mText);
+        measureText();
 
         //绘制文字及背景需要的RectF
         mTextRectF = new RectF();
@@ -114,10 +117,14 @@ public class DragBadgeView extends View {
     /**
      * 测量文字的宽高
      *
-     * @param text 需要被测量的文字
      */
-    private void measureText(String text) {
-        mTextWidth = mTextPaint.measureText(text) + getPaddingLeft() + getPaddingRight();
+    private void measureText() {
+        if (TextUtils.isDigitsOnly(mText)) {
+            if (Integer.valueOf(mText) > mMaxShowValue) {
+                mDrawText = mMaxShowValue + "+";
+            }
+        }
+        mTextWidth = mTextPaint.measureText(mDrawText) + getPaddingLeft() + getPaddingRight();
         Paint.FontMetrics fontMetrics = mTextPaint.getFontMetrics();
         mFontMetricsTop = fontMetrics.top;
         mFontMetricsBottom = fontMetrics.bottom;
@@ -133,10 +140,10 @@ public class DragBadgeView extends View {
      * @param text 需要展示的文字
      */
     public void setText(String text) {
-        mText = text;
+        mText = mDrawText = text;
         Log.d(TAG, "setText: " + text);
 
-        measureText(mText);
+        measureText();
         //请求重新布局,会先调用onMeasure
         requestLayout();
         postInvalidate();
@@ -148,12 +155,32 @@ public class DragBadgeView extends View {
     }
 
     /**
+     * 获取输入的文本
+     * @return String类型文本
+     */
+    public String getStringText() {
+        return mText;
+    }
+
+    /**
+     * 获取输入的数字类型文本
+     * @return int类型文本
+     */
+    public int getIntText() {
+        if (TextUtils.isDigitsOnly(mText))
+            return Integer.valueOf(mText);
+        else
+            return -1;
+    }
+
+    /**
      * 设置控件显示颜色
      *
      * @param color 颜色值
      */
     public void setBgColor(int color) {
         mPaint.setColor(color);
+        postInvalidate();
     }
 
     /**
@@ -164,6 +191,9 @@ public class DragBadgeView extends View {
     public void setTextSize(float textSize) {
         if (textSize > 0) {
             mTextPaint.setTextSize(textSize);
+            measureText();
+            requestLayout();
+            postInvalidate();
         }
     }
 
@@ -222,13 +252,7 @@ public class DragBadgeView extends View {
         //居中drawText
         int centerY = (int) (mTextRectF.centerY() - mFontMetricsTop / 2 - mFontMetricsBottom / 2);
 
-        String temp = mText;
-        if (TextUtils.isDigitsOnly(mText)) {
-            if (Integer.valueOf(mText) > 99) {
-                temp = "99+";
-            }
-        }
-        canvas.drawText(temp, mTextRectF.centerX(), centerY, mTextPaint);
+        canvas.drawText(mDrawText, mTextRectF.centerX(), centerY, mTextPaint);
     }
 
     @Override
@@ -298,7 +322,7 @@ public class DragBadgeView extends View {
                 if (mBadgeView.isOutOfRange) {
                     mBadgeView.disappear(event.getRawX() - mRootViewLocation[0],
                             event.getRawY() - mRootViewLocation[1]);
-                } else if (!mBadgeView.isResetAnimatorRunning()){
+                } else if (!mBadgeView.isResetAnimatorRunning()) {
                     mBadgeView.reset();
                 }
                 break;

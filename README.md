@@ -9,7 +9,7 @@
 ### 添加依赖
 ```
 dependencies {
-	compile 'com.fendoudebb.view:dragbadgeview:1.0.2'
+	compile 'com.fendoudebb.view:dragbadgeview:1.0.3'
 }
 ``` 
 ### xml配置
@@ -18,11 +18,15 @@ dependencies {
         android:id="@+id/drag_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginRight="30dp"
         android:paddingBottom="2dp"
-        android:paddingLeft="5dp"
-        android:paddingRight="5dp"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
         android:paddingTop="2dp"
-        app:dragEnable="false"/>
+        app:dragEnable="false"
+        app:maxShowValue="99"
+        app:text="0"
+        app:textSize="18sp"/>
 ```
 ## 回调
 ```java
@@ -39,6 +43,12 @@ app:text="测试"
 ```
 ```java
 mDragBadgeView.setText("测试");
+```
+## 获取文字
+```java
+public String getStringText();
+
+public int getIntText();
 ```
 ## 设置字体大小
 ```java

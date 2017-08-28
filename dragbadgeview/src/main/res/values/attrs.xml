@@ -3,16 +3,18 @@
     <declare-styleable name="DragBadgeView">
         <!--文字-->
         <attr name="text" format="string"/>
-        <!--文字-->
+        <!--文字大小-->
         <attr name="textSize" format="dimension"/>
-        <!--数字颜色-->
+        <!--文字颜色-->
         <attr name="textColor" format="color"/>
-        <!--控件颜色-->
+        <!--背景颜色-->
         <attr name="bgColor" format="color"/>
         <!--贝塞尔曲线消失的最大范围-->
         <attr name="maxMoveRange" format="dimension"/>
         <!--能否拖拽-->
         <attr name="dragEnable" format="boolean"/>
+        <!--最大显示数值-->
+        <attr name="maxShowValue" format="integer"/>
     </declare-styleable>
 
 </resources>

@@ -58,7 +58,7 @@ public class SampleAdapter extends BaseAdapter {
         }
 
         holder.mTextView.setText(text);
-        holder.mDragBadgeView.setText(position+"");
+        holder.mDragBadgeView.setText(String.valueOf(position));
 
         Boolean isDisappeared = isDisappear.get(position);
         if (isDisappeared) {
